@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EcoFlow widget preview</title>
+  <style>
+    :root {
+      --bg: #0b1c17;
+      --mint: #a7f3d0;
+      --online: #6ee7b7;
+      --soc: #30d158;
+      --muted: #94a3b8;
+      --soft: #cbd5e1;
+      --dim: #64748b;
+      --white: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 20%, #1b4332 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, #081510 0%, transparent 45%),
+        #102a22;
+      color: var(--white);
+      padding: 32px 16px;
+    }
+    .phone {
+      width: min(360px, 100%);
+      padding: 28px 18px 36px;
+      border-radius: 36px;
+      background: linear-gradient(160deg, #1a1a1a, #0a0a0a);
+      box-shadow: 0 30px 80px rgba(0,0,0,.45);
+    }
+    .label {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .widget {
+      background: var(--bg);
+      border-radius: 22px;
+      padding: 14px 14px 12px;
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .widget.medium {
+      grid-column: 1 / -1;
+      aspect-ratio: 2.1 / 1;
+    }
+    .title {
+      color: var(--mint);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .soc {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--soc);
+      line-height: .95;
+      letter-spacing: -1px;
+    }
+    .soc.warn { color: #ff9f0a; }
+    .soc.low { color: #ff453a; }
+    .right {
+      margin-left: auto;
+      text-align: right;
+    }
+    .state {
+      font-size: 14px;
+      font-weight: 600;
+      color: #34c759;
+    }
+    .state.discharge { color: #ff9f0a; }
+    .online {
+      font-size: 11px;
+      color: var(--online);
+      margin-top: 2px;
+    }
+    .online.off { color: #f87171; }
+    .metrics {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      gap: 8px;
+    }
+    .metric span {
+      display: block;
+    }
+    .metric .k {
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .metric .v {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .footer {
+      margin-top: auto;
+      padding-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--soft);
+    }
+    .footer .age { color: var(--dim); font-size: 10px; }
+    .caption {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="label">Превью виджета Scriptable</div>
+    <div class="grid">
+      <div class="widget">
+        <div class="title">DELTA 3 1500</div>
+        <div class="row">
+          <div class="soc">78%</div>
+          <div class="right">
+            <div class="state">Заряд</div>
+            <div class="online">online</div>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="k">Вход</span><span class="v">420 W</span></div>
+          <div class="metric"><span class="k">Выход</span><span class="v">95 W</span></div>
+          <div class="metric"><span class="k">Солнце</span><span class="v">180 W</span></div>
+        </div>
+        <div class="footer">
+          <span>Осталось 3ч 20м</span>
+          <span class="age">12с назад</span>
+        </div>
+      </div>
+
+      <div class="widget">
+        <div class="title">DELTA 3 1500</div>
+        <div class="row">
+          <div class="soc warn">34%</div>
+          <div class="right">
+            <div class="state discharge">Разряд</div>
+            <div class="online">online</div>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="k">Вход</span><span class="v">0 W</span></div>
+          <div class="metric"><span class="k">Выход</span><span class="v">310 W</span></div>
+          <div class="metric"><span class="k">Солнце</span><span class="v">0 W</span></div>
+        </div>
+        <div class="footer">
+          <span>Осталось 4ч 05м</span>
+          <span class="age">1м назад</span>
+        </div>
+      </div>
+
+      <div class="widget medium">
+        <div class="title">DELTA 3 1500</div>
+        <div class="row">
+          <div class="soc low">—</div>
+          <div class="right">
+            <div class="state" style="color:#8e8e93">—</div>
+            <div class="online off">offline</div>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span class="k">Вход</span><span class="v">—</span></div>
+          <div class="metric"><span class="k">Выход</span><span class="v">—</span></div>
+          <div class="metric"><span class="k">Солнце</span><span class="v">—</span></div>
+        </div>
+        <div class="footer">
+          <span>Осталось —</span>
+          <span class="age">сейчас у вас так (Bluetooth / нет Wi‑Fi)</span>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      Слева — заряд · Справа — разряд · Снизу — текущее состояние, пока станция offline
+    </div>
+  </div>
+</body>
+</html>
