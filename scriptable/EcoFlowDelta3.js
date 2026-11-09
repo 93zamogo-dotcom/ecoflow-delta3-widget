@@ -1,9 +1,7 @@
 // EcoFlow DELTA 3 1500 — Scriptable widget
 const REPO = "93zamogo-dotcom/ecoflow-delta3-widget"
 const WIDGET_TITLE = "DELTA 3 1500"
-// Hardcode script file name so refresh works even if Script.name() differs
-const SCRIPT_NAME = "EcoFlowDelta3"
-const REFRESH_URL = "scriptable:///run/" + encodeURIComponent(SCRIPT_NAME)
+const REFRESH_URL = "scriptable:///run?scriptName=" + encodeURIComponent(Script.name())
 
 function decodeBase64(b64) {
   const data = Data.fromBase64String(b64.replace(/\n/g, ""))
