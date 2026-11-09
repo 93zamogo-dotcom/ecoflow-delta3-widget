@@ -1,36 +1,43 @@
-// EcoFlow DELTA 3 1500 — free Scriptable widget
-// Reads status.json updated by GitHub Actions (no Mac / no Fly.io payment).
-//
-// Replace USER and REPO with your public GitHub repo:
-// jsDelivr updates faster than raw.githubusercontent.com CDN
-const BRIDGE_URL = "https://cdn.jsdelivr.net/gh/93zamogo-dotcom/ecoflow-delta3-widget@main"
-const BRIDGE_TOKEN = ""
+// EcoFlow DELTA 3 1500 — Scriptable widget
+// Data from GitHub Actions. Mac not required.
+const REPO = "93zamogo-dotcom/ecoflow-delta3-widget"
 const WIDGET_TITLE = "DELTA 3 1500"
 
 async function fetchStatus() {
-  const base = BRIDGE_URL.replace(/\/$/, "")
-  // Bust CDN caches; keep GitHub raw as fallback
   const stamp = Date.now()
-  const primary = base.endsWith(".json") ? base : `${base}/status.json`
   const candidates = [
-    `${primary}${primary.includes("?") ? "&" : "?"}t=${stamp}`,
-    `https://raw.githubusercontent.com/93zamogo-dotcom/ecoflow-delta3-widget/main/status.json?t=${stamp}`,
-    primary,
+    // GitHub API — no CDN cache (best for phone)
+    {
+      url: `https://api.github.com/repos/${REPO}/contents/status.json?ref=main&_=${stamp}`,
+      headers: {
+        Accept: "application/vnd.github.raw+json",
+        "User-Agent": "EcoFlowDeltaWidget",
+        "Cache-Control": "no-cache",
+      },
+    },
+    {
+      url: `https://cdn.jsdelivr.net/gh/${REPO}@main/status.json?_=${stamp}`,
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    },
+    {
+      url: `https://raw.githubusercontent.com/${REPO}/main/status.json?_=${stamp}`,
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    },
   ]
+
   let lastError
-  for (const candidate of candidates) {
+  for (const c of candidates) {
     try {
-      const req = new Request(candidate)
-      req.timeoutInterval = 15
-      const headers = { "Cache-Control": "no-cache", Pragma: "no-cache" }
-      if (BRIDGE_TOKEN) headers["X-EcoFlow-Token"] = BRIDGE_TOKEN
-      req.headers = headers
-      return await req.loadJSON()
+      const req = new Request(c.url)
+      req.timeoutInterval = 20
+      req.headers = c.headers
+      const data = await req.loadJSON()
+      if (data && (data.soc != null || data.updated_at)) return data
     } catch (err) {
       lastError = err
     }
   }
-  throw lastError
+  throw lastError || new Error("Не удалось загрузить status.json")
 }
 
 function stateLabel(state) {
@@ -68,7 +75,7 @@ function fmtRemain(min) {
 
 function fmtAge(updatedAt) {
   if (!updatedAt) return ""
-  const age = Math.max(0, Math.round(Date.now() / 1000 - updatedAt))
+  const age = Math.max(0, Math.round(Date.now() / 1000 - Number(updatedAt)))
   if (age < 60) return `${age}с назад`
   if (age < 3600) return `${Math.round(age / 60)}м назад`
   return `${Math.round(age / 3600)}ч назад`
@@ -90,7 +97,7 @@ async function createWidget(data, errorText) {
     err.textColor = new Color("#FF6B6B")
     err.minimumScaleFactor = 0.7
     widget.addSpacer()
-    const hint = widget.addText("Проверьте GitHub Actions")
+    const hint = widget.addText("Откройте Scriptable → Play")
     hint.font = Font.systemFont(11)
     hint.textColor = new Color("#9CA3AF")
     return widget
@@ -149,6 +156,7 @@ async function createWidget(data, errorText) {
   age.font = Font.systemFont(10)
   age.textColor = new Color("#64748B")
 
+  // Ask iOS to refresh soon (iOS may still delay home-screen widgets)
   widget.refreshAfterDate = new Date(Date.now() + 5 * 60 * 1000)
   return widget
 }
