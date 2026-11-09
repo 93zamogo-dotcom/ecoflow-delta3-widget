@@ -8,19 +8,22 @@ const WIDGET_TITLE = "DELTA 3 1500"
 
 async function fetchStatus() {
   const base = BRIDGE_URL.replace(/\/$/, "")
-  // GitHub raw feed, or legacy bridge /status
-  const url = base.endsWith(".json") ? base : `${base}/status.json`
-  const fallback = `${base}/status`
+  // GitHub raw feed can stick for minutes — bust with timestamp + jsDelivr mirror
+  const stamp = Date.now()
+  const primary = base.endsWith(".json") ? base : `${base}/status.json`
+  const candidates = [
+    `${primary}${primary.includes("?") ? "&" : "?"}t=${stamp}`,
+    `https://cdn.jsdelivr.net/gh/93zamogo-dotcom/ecoflow-delta3-widget@main/status.json?t=${stamp}`,
+    primary,
+  ]
   let lastError
-  for (const candidate of [url, fallback]) {
+  for (const candidate of candidates) {
     try {
       const req = new Request(candidate)
       req.timeoutInterval = 15
-      if (BRIDGE_TOKEN) {
-        req.headers = { "X-EcoFlow-Token": BRIDGE_TOKEN }
-      }
-      // bust CDN cache a bit
-      req.headers = Object.assign({}, req.headers || {}, { "Cache-Control": "no-cache" })
+      const headers = { "Cache-Control": "no-cache", Pragma: "no-cache" }
+      if (BRIDGE_TOKEN) headers["X-EcoFlow-Token"] = BRIDGE_TOKEN
+      req.headers = headers
       return await req.loadJSON()
     } catch (err) {
       lastError = err
