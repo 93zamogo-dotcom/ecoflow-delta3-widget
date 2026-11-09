@@ -2,8 +2,8 @@ name: Update EcoFlow status
 
 on:
   schedule:
-    # every 15 minutes — free for public repos
-    - cron: "*/15 * * * *"
+    # every 5 minutes — shortest free GitHub Actions schedule
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:

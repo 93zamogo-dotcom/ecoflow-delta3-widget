@@ -2,7 +2,7 @@
 // Reads status.json updated by GitHub Actions (no Mac / no Fly.io payment).
 //
 // Replace USER and REPO with your public GitHub repo:
-const BRIDGE_URL = "https://raw.githubusercontent.com/USER/ecoflow-delta3-widget/main"
+const BRIDGE_URL = "https://raw.githubusercontent.com/93zamogo-dotcom/ecoflow-delta3-widget/main"
 const BRIDGE_TOKEN = ""
 const WIDGET_TITLE = "DELTA 3 1500"
 
@@ -145,7 +145,7 @@ async function createWidget(data, errorText) {
   age.font = Font.systemFont(10)
   age.textColor = new Color("#64748B")
 
-  widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000)
+  widget.refreshAfterDate = new Date(Date.now() + 5 * 60 * 1000)
   return widget
 }
 
