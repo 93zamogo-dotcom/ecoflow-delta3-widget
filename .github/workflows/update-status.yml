@@ -2,9 +2,17 @@ name: Update EcoFlow status
 
 on:
   schedule:
-    # every 5 minutes — shortest free GitHub Actions schedule
-    - cron: "*/5 * * * *"
+    # Three overlapping crons — GitHub often skips */5; offsets raise hit rate
+    - cron: "0,5,10,15,20,25,30,35,40,45,50,55 * * * *"
+    - cron: "2,7,12,17,22,27,32,37,42,47,52,57 * * * *"
+    - cron: "4,9,14,19,24,29,34,39,44,49,54,59 * * * *"
   workflow_dispatch:
+  repository_dispatch:
+    types: [ecoflow-update]
+
+concurrency:
+  group: ecoflow-status-update
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -12,12 +20,17 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bridge/requirements.txt
 
       - name: Install deps
         run: pip install -r bridge/requirements.txt
@@ -31,25 +44,57 @@ jobs:
         run: |
           set -euo pipefail
           cd bridge
-          python fetch_once.py | tee ../status.json
+          ok=0
+          for attempt in 1 2 3; do
+            echo "Fetch attempt $attempt"
+            if python fetch_once.py > ../status.json; then
+              ok=1
+              break
+            fi
+            sleep $((attempt * 5))
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "All EcoFlow fetch attempts failed"
+            exit 1
+          fi
           python - <<'PY'
           import json
           from pathlib import Path
           data = json.loads(Path("../status.json").read_text())
-          # keep widget payload only (no huge raw dump)
           public = {k: v for k, v in data.items() if k != "raw"}
-          Path("../status.json").write_text(json.dumps(public, ensure_ascii=False, indent=2) + "\n")
-          print("soc=", public.get("soc"), "online=", public.get("online"))
+          Path("../status.json").write_text(
+              json.dumps(public, ensure_ascii=False, indent=2) + "\n"
+          )
+          print(
+              "soc=", public.get("soc"),
+              "online=", public.get("online"),
+              "updated=", public.get("updated_at_iso"),
+          )
           PY
 
       - name: Commit status.json
         run: |
+          set -euo pipefail
           git config user.name "ecoflow-bot"
           git config user.email "ecoflow-bot@users.noreply.github.com"
           git add status.json
           if git diff --staged --quiet; then
             echo "No changes"
-          else
-            git commit -m "chore: update EcoFlow status"
-            git push
+            exit 0
           fi
+          git commit -m "chore: update EcoFlow status"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push failed (attempt $attempt), rebasing..."
+            git pull --rebase origin main
+            sleep 2
+          done
+          exit 1
+
+      - name: Purge jsDelivr cache
+        if: success()
+        continue-on-error: true
+        run: |
+          curl -fsS "https://purge.jsdelivr.net/gh/93zamogo-dotcom/ecoflow-delta3-widget@main/status.json" || true

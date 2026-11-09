@@ -1,0 +1,115 @@
+name: EcoFlow status watchdog
+
+# Backup trigger: if status.json is older than 12 minutes, refresh it.
+# Helps when the main schedule is delayed or skipped by GitHub.
+# No Mac required.
+
+on:
+  schedule:
+    - cron: "1,11,21,31,41,51 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ecoflow-status-update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check status age
+        id: check
+        run: |
+          set -euo pipefail
+          curl -fsS "https://raw.githubusercontent.com/93zamogo-dotcom/ecoflow-delta3-widget/main/status.json" -o /tmp/status.json
+          AGE_SEC=$(python3 - <<'PY'
+          import json, time
+          data = json.load(open("/tmp/status.json"))
+          age = time.time() - float(data.get("updated_at") or 0)
+          print(int(age))
+          PY
+          )
+          echo "age_sec=$AGE_SEC" >> "$GITHUB_OUTPUT"
+          if [ "$AGE_SEC" -gt 720 ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "Status is stale (${AGE_SEC}s) — will refresh"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+            echo "Status is fresh (${AGE_SEC}s) — skip"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.stale == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.check.outputs.stale == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: bridge/requirements.txt
+
+      - name: Install deps
+        if: steps.check.outputs.stale == 'true'
+        run: pip install -r bridge/requirements.txt
+
+      - name: Fetch EcoFlow status
+        if: steps.check.outputs.stale == 'true'
+        env:
+          ECOFLOW_EMAIL: ${{ secrets.ECOFLOW_EMAIL }}
+          ECOFLOW_PASSWORD: ${{ secrets.ECOFLOW_PASSWORD }}
+          ECOFLOW_SN: ${{ secrets.ECOFLOW_SN }}
+          ECOFLOW_REGION: ${{ secrets.ECOFLOW_REGION }}
+        run: |
+          set -euo pipefail
+          cd bridge
+          ok=0
+          for attempt in 1 2 3; do
+            echo "Fetch attempt $attempt"
+            if python fetch_once.py > ../status.json; then
+              ok=1
+              break
+            fi
+            sleep $((attempt * 5))
+          done
+          test "$ok" -eq 1
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("../status.json").read_text())
+          public = {k: v for k, v in data.items() if k != "raw"}
+          Path("../status.json").write_text(
+              json.dumps(public, ensure_ascii=False, indent=2) + "\n"
+          )
+          print("soc=", public.get("soc"), "online=", public.get("online"))
+          PY
+
+      - name: Commit status.json
+        if: steps.check.outputs.stale == 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "ecoflow-bot"
+          git config user.email "ecoflow-bot@users.noreply.github.com"
+          git add status.json
+          if git diff --staged --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "chore: update EcoFlow status (watchdog)"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git pull --rebase origin main
+            sleep 2
+          done
+          exit 1
+
+      - name: Purge jsDelivr cache
+        if: success() && steps.check.outputs.stale == 'true'
+        continue-on-error: true
+        run: |
+          curl -fsS "https://purge.jsdelivr.net/gh/93zamogo-dotcom/ecoflow-delta3-widget@main/status.json" || true
