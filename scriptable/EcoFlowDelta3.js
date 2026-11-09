@@ -156,8 +156,10 @@ async function createWidget(data, errorText) {
   age.font = Font.systemFont(10)
   age.textColor = new Color("#64748B")
 
-  // Ask iOS to refresh soon (iOS may still delay home-screen widgets)
-  widget.refreshAfterDate = new Date(Date.now() + 5 * 60 * 1000)
+  // Hint only — iOS often ignores and refreshes home widgets every ~15–60+ min
+  widget.refreshAfterDate = new Date(Date.now() + 60 * 1000)
+  // Tap widget → re-run script and force redraw
+  widget.url = "scriptable:///run?scriptName=" + encodeURIComponent(Script.name())
   return widget
 }
 
@@ -169,9 +171,8 @@ try {
   widget = await createWidget(null, String(err))
 }
 
-if (config.runsInWidget) {
-  Script.setWidget(widget)
-} else {
+Script.setWidget(widget)
+if (!config.runsInWidget) {
   await widget.presentSmall()
 }
 Script.complete()
