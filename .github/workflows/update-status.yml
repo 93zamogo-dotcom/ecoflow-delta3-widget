@@ -60,14 +60,42 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          data = json.loads(Path("../status.json").read_text())
+
+          path = Path("../status.json")
+          data = json.loads(path.read_text())
           public = {k: v for k, v in data.items() if k != "raw"}
-          Path("../status.json").write_text(
-              json.dumps(public, ensure_ascii=False, indent=2) + "\n"
-          )
+
+          # Don't wipe a good reading with empty/offline null payload
+          prev = {}
+          try:
+              prev = json.loads(
+                  __import__("subprocess").check_output(
+                      ["git", "show", "HEAD:status.json"], text=True
+                  )
+              )
+          except Exception:
+              pass
+
+          if public.get("soc") is None and prev.get("soc") is not None:
+              keep = {
+                  k: prev.get(k)
+                  for k in (
+                      "soc", "input_w", "output_w", "solar_w", "ac_out_w",
+                      "ac_in_w", "state", "remain_min", "temp_c", "cycles",
+                  )
+              }
+              public.update(keep)
+              public["online"] = False
+              public["stale"] = True
+              print("Kept previous metrics; EcoFlow returned empty payload")
+          else:
+              public["stale"] = False
+
+          path.write_text(json.dumps(public, ensure_ascii=False, indent=2) + "\n")
           print(
               "soc=", public.get("soc"),
               "online=", public.get("online"),
+              "stale=", public.get("stale"),
               "updated=", public.get("updated_at_iso"),
           )
           PY

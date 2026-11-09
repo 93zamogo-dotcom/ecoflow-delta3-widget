@@ -1,26 +1,57 @@
 // EcoFlow DELTA 3 1500 — Scriptable widget
-// ONLY GitHub API (jsDelivr CDN freezes for 20+ minutes)
 const REPO = "93zamogo-dotcom/ecoflow-delta3-widget"
 const WIDGET_TITLE = "DELTA 3 1500"
-const REFRESH_URL = "scriptable:///run?scriptName=" + encodeURIComponent(Script.name())
+// Hardcode script file name so refresh works even if Script.name() differs
+const SCRIPT_NAME = "EcoFlowDelta3"
+const REFRESH_URL = "scriptable:///run/" + encodeURIComponent(SCRIPT_NAME)
+
+function decodeBase64(b64) {
+  const data = Data.fromBase64String(b64.replace(/\n/g, ""))
+  if (!data) throw new Error("base64 decode failed")
+  return data.toRawString()
+}
 
 async function fetchStatus() {
   const stamp = Date.now()
-  const url =
-    `https://api.github.com/repos/${REPO}/contents/status.json?ref=main&_=${stamp}`
-  const req = new Request(url)
-  req.timeoutInterval = 20
-  req.headers = {
-    Accept: "application/vnd.github.raw+json",
-    "User-Agent": "EcoFlowDeltaWidget",
-    "Cache-Control": "no-cache",
-    Pragma: "no-cache",
+  const errors = []
+
+  // 1) GitHub Contents API (works from Scriptable; may return base64 wrapper)
+  try {
+    const req = new Request(
+      `https://api.github.com/repos/${REPO}/contents/status.json?ref=main&ts=${stamp}`
+    )
+    req.timeoutInterval = 20
+    req.headers = {
+      Accept: "application/vnd.github+json",
+      "User-Agent": "Scriptable-EcoFlow",
+      "Cache-Control": "no-cache",
+    }
+    const payload = await req.loadJSON()
+    let data = payload
+    if (payload && typeof payload.content === "string" && payload.encoding === "base64") {
+      data = JSON.parse(decodeBase64(payload.content))
+    }
+    if (data && (data.soc != null || data.updated_at || data.sn)) return data
+    errors.push("api: empty")
+  } catch (e) {
+    errors.push("api: " + e)
   }
-  const data = await req.loadJSON()
-  if (!data || (data.soc == null && !data.updated_at)) {
-    throw new Error("Пустой status.json")
+
+  // 2) raw.githubusercontent (no fancy Accept header)
+  try {
+    const req = new Request(
+      `https://raw.githubusercontent.com/${REPO}/main/status.json?ts=${stamp}`
+    )
+    req.timeoutInterval = 20
+    req.headers = { "Cache-Control": "no-cache", "User-Agent": "Scriptable-EcoFlow" }
+    const data = await req.loadJSON()
+    if (data && (data.soc != null || data.updated_at || data.sn)) return data
+    errors.push("raw: empty")
+  } catch (e) {
+    errors.push("raw: " + e)
   }
-  return data
+
+  throw new Error(errors.join(" | ") || "fetch failed")
 }
 
 function stateLabel(state) {
@@ -45,13 +76,14 @@ function socColor(soc) {
 
 function fmtW(value) {
   if (value == null) return "—"
-  return `${Math.round(value)} W`
+  return `${Math.round(Number(value))} W`
 }
 
 function fmtRemain(min) {
   if (min == null) return "—"
+  min = Number(min)
   const h = Math.floor(min / 60)
-  const m = min % 60
+  const m = Math.round(min % 60)
   if (h <= 0) return `${m}м`
   return `${h}ч ${String(m).padStart(2, "0")}м`
 }
@@ -59,31 +91,28 @@ function fmtRemain(min) {
 function fmtAge(updatedAt) {
   if (!updatedAt) return ""
   const age = Math.max(0, Math.round(Date.now() / 1000 - Number(updatedAt)))
-  if (age < 60) return `${age}с назад`
-  if (age < 3600) return `${Math.round(age / 60)}м назад`
-  return `${Math.round(age / 3600)}ч назад`
+  if (age < 60) return `${age}с`
+  if (age < 3600) return `${Math.round(age / 60)}м`
+  return `${Math.round(age / 3600)}ч`
 }
 
 function addRefreshButton(parent) {
   const btn = parent.addStack()
   btn.layoutHorizontally()
   btn.centerAlignContent()
-  btn.setPadding(4, 8, 4, 8)
-  btn.cornerRadius = 8
+  btn.setPadding(3, 7, 3, 7)
+  btn.cornerRadius = 7
   btn.backgroundColor = new Color("#14532D")
   btn.url = REFRESH_URL
-  const label = btn.addText("↻ Обновить")
+  const label = btn.addText("Обновить")
   label.font = Font.semiboldSystemFont(11)
   label.textColor = new Color("#A7F3D0")
-  return btn
 }
 
 async function createWidget(data, errorText) {
   const widget = new ListWidget()
   widget.setPadding(12, 14, 12, 14)
   widget.backgroundColor = new Color("#0B1C17")
-  // Whole widget also refreshes on tap
-  widget.url = REFRESH_URL
 
   const header = widget.addStack()
   header.layoutHorizontally()
@@ -97,14 +126,16 @@ async function createWidget(data, errorText) {
   widget.addSpacer(6)
 
   if (errorText) {
-    const err = widget.addText(errorText)
-    err.font = Font.systemFont(13)
+    const err = widget.addText(String(errorText))
+    err.font = Font.systemFont(12)
     err.textColor = new Color("#FF6B6B")
-    err.minimumScaleFactor = 0.7
+    err.minimumScaleFactor = 0.6
+    err.lineLimit = 6
     widget.addSpacer()
-    const hint = widget.addText("Нажми «Обновить»")
+    const hint = widget.addText("Нажми Обновить")
     hint.font = Font.systemFont(11)
     hint.textColor = new Color("#9CA3AF")
+    widget.url = REFRESH_URL
     return widget
   }
 
@@ -113,29 +144,25 @@ async function createWidget(data, errorText) {
 
   const soc = data.soc
   const socText = row.addText(soc == null ? "—" : `${soc}%`)
-  socText.font = Font.boldSystemFont(42)
+  socText.font = Font.boldSystemFont(40)
   socText.textColor = socColor(soc)
   socText.minimumScaleFactor = 0.5
   row.addSpacer()
 
   const right = row.addStack()
   right.layoutVertically()
-  right.centerAlignContent()
-
   const state = right.addText(stateLabel(data.state))
   state.font = Font.semiboldSystemFont(14)
   state.textColor = stateColor(data.state)
-
   const online = right.addText(data.online ? "online" : "offline")
   online.font = Font.systemFont(11)
   online.textColor = data.online ? new Color("#6EE7B7") : new Color("#F87171")
 
   widget.addSpacer(8)
   const grid = widget.addStack()
-  grid.layoutHorizontally()
 
-  function addMetric(stack, label, value) {
-    const col = stack.addStack()
+  function addMetric(label, value) {
+    const col = grid.addStack()
     col.layoutVertically()
     const l = col.addText(label)
     l.font = Font.systemFont(10)
@@ -143,15 +170,14 @@ async function createWidget(data, errorText) {
     const v = col.addText(value)
     v.font = Font.semiboldSystemFont(13)
     v.textColor = Color.white()
+    grid.addSpacer()
   }
 
-  addMetric(grid, "Вход", fmtW(data.input_w))
-  grid.addSpacer()
-  addMetric(grid, "Выход", fmtW(data.output_w))
-  grid.addSpacer()
-  addMetric(grid, "Солнце", fmtW(data.solar_w))
+  addMetric("Вход", fmtW(data.input_w))
+  addMetric("Выход", fmtW(data.output_w))
+  addMetric("Солнце", fmtW(data.solar_w))
 
-  widget.addSpacer(6)
+  widget.addSpacer(4)
   const bottom = widget.addStack()
   bottom.layoutHorizontally()
   bottom.centerAlignContent()
@@ -163,7 +189,8 @@ async function createWidget(data, errorText) {
   age.font = Font.systemFont(10)
   age.textColor = new Color("#64748B")
 
-  widget.refreshAfterDate = new Date(Date.now() + 60 * 1000)
+  // Don't set widget.url here — it steals taps from the Обновить button
+  widget.refreshAfterDate = new Date(Date.now() + 2 * 60 * 1000)
   return widget
 }
 
@@ -172,7 +199,7 @@ try {
   const data = await fetchStatus()
   widget = await createWidget(data, null)
 } catch (err) {
-  widget = await createWidget(null, String(err))
+  widget = await createWidget(null, err)
 }
 
 Script.setWidget(widget)
