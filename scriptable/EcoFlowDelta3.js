@@ -1,43 +1,26 @@
 // EcoFlow DELTA 3 1500 — Scriptable widget
-// Data from GitHub Actions. Mac not required.
+// ONLY GitHub API (jsDelivr CDN freezes for 20+ minutes)
 const REPO = "93zamogo-dotcom/ecoflow-delta3-widget"
 const WIDGET_TITLE = "DELTA 3 1500"
+const REFRESH_URL = "scriptable:///run?scriptName=" + encodeURIComponent(Script.name())
 
 async function fetchStatus() {
   const stamp = Date.now()
-  const candidates = [
-    // GitHub API — no CDN cache (best for phone)
-    {
-      url: `https://api.github.com/repos/${REPO}/contents/status.json?ref=main&_=${stamp}`,
-      headers: {
-        Accept: "application/vnd.github.raw+json",
-        "User-Agent": "EcoFlowDeltaWidget",
-        "Cache-Control": "no-cache",
-      },
-    },
-    {
-      url: `https://cdn.jsdelivr.net/gh/${REPO}@main/status.json?_=${stamp}`,
-      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-    },
-    {
-      url: `https://raw.githubusercontent.com/${REPO}/main/status.json?_=${stamp}`,
-      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-    },
-  ]
-
-  let lastError
-  for (const c of candidates) {
-    try {
-      const req = new Request(c.url)
-      req.timeoutInterval = 20
-      req.headers = c.headers
-      const data = await req.loadJSON()
-      if (data && (data.soc != null || data.updated_at)) return data
-    } catch (err) {
-      lastError = err
-    }
+  const url =
+    `https://api.github.com/repos/${REPO}/contents/status.json?ref=main&_=${stamp}`
+  const req = new Request(url)
+  req.timeoutInterval = 20
+  req.headers = {
+    Accept: "application/vnd.github.raw+json",
+    "User-Agent": "EcoFlowDeltaWidget",
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
   }
-  throw lastError || new Error("Не удалось загрузить status.json")
+  const data = await req.loadJSON()
+  if (!data || (data.soc == null && !data.updated_at)) {
+    throw new Error("Пустой status.json")
+  }
+  return data
 }
 
 function stateLabel(state) {
@@ -81,14 +64,36 @@ function fmtAge(updatedAt) {
   return `${Math.round(age / 3600)}ч назад`
 }
 
+function addRefreshButton(parent) {
+  const btn = parent.addStack()
+  btn.layoutHorizontally()
+  btn.centerAlignContent()
+  btn.setPadding(4, 8, 4, 8)
+  btn.cornerRadius = 8
+  btn.backgroundColor = new Color("#14532D")
+  btn.url = REFRESH_URL
+  const label = btn.addText("↻ Обновить")
+  label.font = Font.semiboldSystemFont(11)
+  label.textColor = new Color("#A7F3D0")
+  return btn
+}
+
 async function createWidget(data, errorText) {
   const widget = new ListWidget()
   widget.setPadding(12, 14, 12, 14)
   widget.backgroundColor = new Color("#0B1C17")
+  // Whole widget also refreshes on tap
+  widget.url = REFRESH_URL
 
-  const title = widget.addText(WIDGET_TITLE)
+  const header = widget.addStack()
+  header.layoutHorizontally()
+  header.centerAlignContent()
+  const title = header.addText(WIDGET_TITLE)
   title.font = Font.boldSystemFont(12)
   title.textColor = new Color("#A7F3D0")
+  header.addSpacer()
+  addRefreshButton(header)
+
   widget.addSpacer(6)
 
   if (errorText) {
@@ -97,7 +102,7 @@ async function createWidget(data, errorText) {
     err.textColor = new Color("#FF6B6B")
     err.minimumScaleFactor = 0.7
     widget.addSpacer()
-    const hint = widget.addText("Откройте Scriptable → Play")
+    const hint = widget.addText("Нажми «Обновить»")
     hint.font = Font.systemFont(11)
     hint.textColor = new Color("#9CA3AF")
     return widget
@@ -148,6 +153,8 @@ async function createWidget(data, errorText) {
 
   widget.addSpacer(6)
   const bottom = widget.addStack()
+  bottom.layoutHorizontally()
+  bottom.centerAlignContent()
   const remain = bottom.addText(`Осталось ${fmtRemain(data.remain_min)}`)
   remain.font = Font.systemFont(11)
   remain.textColor = new Color("#CBD5E1")
@@ -156,10 +163,7 @@ async function createWidget(data, errorText) {
   age.font = Font.systemFont(10)
   age.textColor = new Color("#64748B")
 
-  // Hint only — iOS often ignores and refreshes home widgets every ~15–60+ min
   widget.refreshAfterDate = new Date(Date.now() + 60 * 1000)
-  // Tap widget → re-run script and force redraw
-  widget.url = "scriptable:///run?scriptName=" + encodeURIComponent(Script.name())
   return widget
 }
 
