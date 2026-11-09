@@ -2,18 +2,19 @@
 // Reads status.json updated by GitHub Actions (no Mac / no Fly.io payment).
 //
 // Replace USER and REPO with your public GitHub repo:
-const BRIDGE_URL = "https://raw.githubusercontent.com/93zamogo-dotcom/ecoflow-delta3-widget/main"
+// jsDelivr updates faster than raw.githubusercontent.com CDN
+const BRIDGE_URL = "https://cdn.jsdelivr.net/gh/93zamogo-dotcom/ecoflow-delta3-widget@main"
 const BRIDGE_TOKEN = ""
 const WIDGET_TITLE = "DELTA 3 1500"
 
 async function fetchStatus() {
   const base = BRIDGE_URL.replace(/\/$/, "")
-  // GitHub raw feed can stick for minutes — bust with timestamp + jsDelivr mirror
+  // Bust CDN caches; keep GitHub raw as fallback
   const stamp = Date.now()
   const primary = base.endsWith(".json") ? base : `${base}/status.json`
   const candidates = [
     `${primary}${primary.includes("?") ? "&" : "?"}t=${stamp}`,
-    `https://cdn.jsdelivr.net/gh/93zamogo-dotcom/ecoflow-delta3-widget@main/status.json?t=${stamp}`,
+    `https://raw.githubusercontent.com/93zamogo-dotcom/ecoflow-delta3-widget/main/status.json?t=${stamp}`,
     primary,
   ]
   let lastError
