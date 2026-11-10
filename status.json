@@ -3,7 +3,7 @@
   "online": true,
   "soc": 84,
   "input_w": 0,
-  "output_w": 154,
+  "output_w": 152,
   "solar_w": 0,
   "ac_out_w": 153,
   "ac_in_w": 0,
@@ -11,7 +11,7 @@
   "remain_min": 383,
   "temp_c": 37.0,
   "cycles": 107,
-  "updated_at": 1794337884.2807934,
-  "updated_at_iso": "2026-11-10T19:11:24Z",
+  "updated_at": 1794337943.687188,
+  "updated_at_iso": "2026-11-10T19:12:23Z",
   "stale": false
 }
