@@ -9,9 +9,9 @@
   "ac_in_w": 0,
   "state": "discharging",
   "remain_min": 5939,
-  "temp_c": 38.0,
+  "temp_c": 36.0,
   "cycles": 107,
-  "updated_at": 1794354332.4521186,
-  "updated_at_iso": "2026-11-10T23:45:32Z",
+  "updated_at": 1794354383.1388545,
+  "updated_at_iso": "2026-11-10T23:46:23Z",
   "stale": false
 }
