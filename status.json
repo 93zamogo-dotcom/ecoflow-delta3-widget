@@ -5,13 +5,13 @@
   "input_w": 0,
   "output_w": 261,
   "solar_w": 0,
-  "ac_out_w": 261,
+  "ac_out_w": 260,
   "ac_in_w": 0,
   "state": "discharging",
   "remain_min": 208,
   "temp_c": 28.0,
   "cycles": 110,
-  "updated_at": 1794765385.9232125,
-  "updated_at_iso": "2026-11-15T17:56:25Z",
+  "updated_at": 1794765443.4449158,
+  "updated_at_iso": "2026-11-15T17:57:23Z",
   "stale": false
 }
