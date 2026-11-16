@@ -1,6 +1,6 @@
 {
   "sn": "D361ZCB49GAP1106",
-  "online": true,
+  "online": false,
   "soc": 100,
   "input_w": null,
   "output_w": null,
@@ -11,7 +11,7 @@
   "remain_min": 5939,
   "temp_c": null,
   "cycles": null,
-  "updated_at": 1794871586.6470487,
-  "updated_at_iso": "2026-11-16T23:26:26Z",
-  "stale": false
+  "updated_at": 1794871614.7775457,
+  "updated_at_iso": "2026-11-16T23:26:54Z",
+  "stale": true
 }
