@@ -1,17 +1,17 @@
 {
   "sn": "D361ZCB49GAP1106",
   "online": true,
-  "soc": 98,
+  "soc": 97,
   "input_w": 0,
-  "output_w": 377,
+  "output_w": 852,
   "solar_w": 0,
-  "ac_out_w": 377,
+  "ac_out_w": 852,
   "ac_in_w": 0,
   "state": "discharging",
   "remain_min": 237,
   "temp_c": 22.0,
   "cycles": 111,
-  "updated_at": 1794942145.847853,
-  "updated_at_iso": "2026-11-17T19:02:25Z",
+  "updated_at": 1794942209.1067066,
+  "updated_at_iso": "2026-11-17T19:03:29Z",
   "stale": false
 }
