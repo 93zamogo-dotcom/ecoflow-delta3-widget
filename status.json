@@ -8,10 +8,10 @@
   "ac_out_w": 0,
   "ac_in_w": 0,
   "state": "discharging",
-  "remain_min": 102,
+  "remain_min": 5939,
   "temp_c": 41.0,
   "cycles": 116,
-  "updated_at": 1795382663.0005524,
-  "updated_at_iso": "2026-11-22T21:24:23Z",
+  "updated_at": 1795382739.5034754,
+  "updated_at_iso": "2026-11-22T21:25:39Z",
   "stale": false
 }
