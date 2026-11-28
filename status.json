@@ -6,12 +6,12 @@
   "output_w": 0,
   "solar_w": 0,
   "ac_out_w": 0,
-  "ac_in_w": 121,
+  "ac_in_w": 0,
   "state": "discharging",
   "remain_min": 5939,
   "temp_c": 33.0,
   "cycles": 119,
-  "updated_at": 1795825097.3045394,
-  "updated_at_iso": "2026-11-28T00:18:17Z",
+  "updated_at": 1795825163.4856374,
+  "updated_at_iso": "2026-11-28T00:19:23Z",
   "stale": false
 }
